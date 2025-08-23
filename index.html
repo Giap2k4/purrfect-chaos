@@ -8,44 +8,6 @@
     <link rel="stylesheet" href="TemplateData/style.css">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
 
-    <script>
-      (function blockMetaMaskAutoConnect() {
-        let patched = false;
-        function patch() {
-          if (window.ethereum && window.ethereum.isMetaMask && !patched) {
-            const originalRequest = window.ethereum.request;
-            window.ethereum.request = function(args) {
-              if (args && args.method === 'eth_requestAccounts') {
-                if (!window.userInitiatedMetaMaskConnect) {
-                  console.log('🚫 Blocked MetaMask auto-connect request');
-                  return Promise.reject(new Error('MetaMask connection blocked for Solana-first experience'));
-                }
-              }
-              return originalRequest.call(this, args);
-            };
-            window.connectMetaMask = async function () {
-              try {
-                window.userInitiatedMetaMaskConnect = true;
-                const accounts = await originalRequest.call(window.ethereum, { method: 'eth_requestAccounts' });
-                return accounts;
-              } finally {
-                window.userInitiatedMetaMaskConnect = false;
-              }
-            };
-            patched = true;
-            console.log('✅ MetaMask auto-connect patch applied');
-          }
-        }
-        // Poll liên tục cho đến khi MetaMask inject xong
-        const interval = setInterval(() => {
-          patch();
-          if (patched) clearInterval(interval);
-        }, 50);
-        // Thử patch khi DOMContentLoaded
-        document.addEventListener('DOMContentLoaded', patch);
-      })();
-      </script>
-
         <!-- Thêm trước tag </head> -->
     <script src="https://unpkg.com/tweetnacl@1.0.3/nacl-fast.min.js"></script>
     <script src="https://unpkg.com/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
