@@ -7,6 +7,43 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+
+    <script>
+      if (typeof window !== 'undefined') {
+        // Đợi MetaMask inject xong (thường rất nhanh)
+        function blockMetaMaskAutoConnect() {
+          if (window.ethereum && window.ethereum.isMetaMask) {
+            const originalRequest = window.ethereum.request;
+            window.ethereum.request = function(args) {
+              if (args && args.method === 'eth_requestAccounts') {
+                if (!window.userInitiatedMetaMaskConnect) {
+                  console.log('🚫 Blocked MetaMask auto-connect request');
+                  return Promise.reject(new Error('MetaMask connection blocked for Solana-first experience'));
+                }
+              }
+              return originalRequest.call(this, args);
+            };
+            window.connectMetaMask = async function () {
+              try {
+                window.userInitiatedMetaMaskConnect = true;
+                const accounts = await originalRequest.call(window.ethereum, { method: 'eth_requestAccounts' });
+                return accounts;
+              } finally {
+                window.userInitiatedMetaMaskConnect = false;
+              }
+            };
+          }
+        }
+        // Gọi ngay, hoặc thử lại nếu MetaMask chưa inject kịp
+        if (window.ethereum && window.ethereum.isMetaMask) {
+          blockMetaMaskAutoConnect();
+        } else {
+          window.addEventListener('ethereum#initialized', blockMetaMaskAutoConnect, { once: true });
+          setTimeout(blockMetaMaskAutoConnect, 1000); // fallback nếu event không bắn
+        }
+      }
+      </script>
+
         <!-- Thêm trước tag </head> -->
     <script src="https://unpkg.com/tweetnacl@1.0.3/nacl-fast.min.js"></script>
     <script src="https://unpkg.com/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
