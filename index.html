@@ -9,10 +9,10 @@
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
 
     <script>
-      if (typeof window !== 'undefined') {
-        // Đợi MetaMask inject xong (thường rất nhanh)
-        function blockMetaMaskAutoConnect() {
-          if (window.ethereum && window.ethereum.isMetaMask) {
+      (function blockMetaMaskAutoConnect() {
+        let patched = false;
+        function patch() {
+          if (window.ethereum && window.ethereum.isMetaMask && !patched) {
             const originalRequest = window.ethereum.request;
             window.ethereum.request = function(args) {
               if (args && args.method === 'eth_requestAccounts') {
@@ -32,16 +32,18 @@
                 window.userInitiatedMetaMaskConnect = false;
               }
             };
+            patched = true;
+            console.log('✅ MetaMask auto-connect patch applied');
           }
         }
-        // Gọi ngay, hoặc thử lại nếu MetaMask chưa inject kịp
-        if (window.ethereum && window.ethereum.isMetaMask) {
-          blockMetaMaskAutoConnect();
-        } else {
-          window.addEventListener('ethereum#initialized', blockMetaMaskAutoConnect, { once: true });
-          setTimeout(blockMetaMaskAutoConnect, 1000); // fallback nếu event không bắn
-        }
-      }
+        // Poll liên tục cho đến khi MetaMask inject xong
+        const interval = setInterval(() => {
+          patch();
+          if (patched) clearInterval(interval);
+        }, 50);
+        // Thử patch khi DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', patch);
+      })();
       </script>
 
         <!-- Thêm trước tag </head> -->
